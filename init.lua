@@ -11,7 +11,7 @@ local LONG_BOW_WIELD_SCALE = vector.new(
 	mcl_vars.tool_wield_scale.z
 )
 
-local PLAYER_USE_BOW_SPEED = tonumber(minetest.settings:get("movement_speed_crouch")) / tonumber(minetest.settings:get("movement_speed_walk"))
+local PLAYER_USE_BOW_SPEED = tonumber(core.settings:get("movement_speed_crouch")) / tonumber(core.settings:get("movement_speed_walk"))
 
 local BOW_MAX_SPEED = 80
 local BOW_FULL_DAMAGE = 22
@@ -83,7 +83,7 @@ local function get_arrow(player)
 	local arrow_stack, arrow_stack_id
 	for i=1, inv:get_size("main") do
 		local it = inv:get_stack("main", i)
-		if not it:is_empty() and minetest.get_item_group(it:get_name(), "ammo_bow") ~= 0 then
+		if not it:is_empty() and core.get_item_group(it:get_name(), "ammo_bow") ~= 0 then
 			arrow_stack = it
 			arrow_stack_id = i
 			break
@@ -98,7 +98,7 @@ local function player_shoot_arrow(itemstack, player, power, damage, is_critical)
 	local has_infinity_enchantment = mcl_enchanting.has_enchantment(player:get_wielded_item(), "infinity")
 	local infinity_used = false
 
-	if minetest.is_creative_enabled(player:get_player_name()) then
+	if core.is_creative_enabled(player:get_player_name()) then
 		if arrow_stack then
 			arrow_itemstring = arrow_stack:get_name()
 		else
@@ -110,7 +110,7 @@ local function player_shoot_arrow(itemstack, player, power, damage, is_critical)
 			return false
 		end
 		arrow_itemstring = arrow_stack:get_name()
-		if has_infinity_enchantment and minetest.get_item_group(arrow_itemstring, "ammo_bow_regular") > 0 then
+		if has_infinity_enchantment and core.get_item_group(arrow_itemstring, "ammo_bow_regular") > 0 then
 			infinity_used = true
 		else
 			arrow_stack:take_item()
@@ -129,7 +129,7 @@ local function player_shoot_arrow(itemstack, player, power, damage, is_critical)
 	return true
 end
 
-minetest.register_tool("longbow:longbow", {
+core.register_tool("longbow:longbow", {
 	description = S("Longbow"),
 	_tt_help = S("Launches arrows"),
 	_doc_items_longdesc = S("Longbows are powerful ranged weapons to shoot arrows at your foes.").."\n"..
@@ -144,10 +144,10 @@ S("The longbow can be combined with a regular bow on an anvil. Put the longbow i
 	on_use = function() return end,
 	on_place = function(itemstack, player, pointed_thing)
 		if pointed_thing and pointed_thing.type == "node" then
-			local node = minetest.get_node(pointed_thing.under)
+			local node = core.get_node(pointed_thing.under)
 			if player and not player:get_player_control().sneak then
-				if minetest.registered_nodes[node.name] and minetest.registered_nodes[node.name].on_rightclick then
-					return minetest.registered_nodes[node.name].on_rightclick(pointed_thing.under, node, player, itemstack) or itemstack
+				if core.registered_nodes[node.name] and core.registered_nodes[node.name].on_rightclick then
+					return core.registered_nodes[node.name].on_rightclick(pointed_thing.under, node, player, itemstack) or itemstack
 				end
 			end
 		end
@@ -174,12 +174,12 @@ local function is_regular_bow(itemstack)
 	return name == "mcl_bows:bow" or name == "mcl_bows:bow_enchanted"
 end
 
-minetest.register_on_mods_loaded(function()
+core.register_on_mods_loaded(function()
 	local enchanted_longbow = "longbow:longbow_enchanted"
-	minetest.override_item("longbow:longbow", {
+	core.override_item("longbow:longbow", {
 		_mcl_enchanting_enchanted_tool = enchanted_longbow,
 	})
-	minetest.override_item("longbow:longbow_enchanted", {
+	core.override_item("longbow:longbow_enchanted", {
 		_mcl_enchanting_enchanted_tool = enchanted_longbow,
 	})
 
@@ -245,7 +245,7 @@ local function reset_bow_state(player, also_reset_bows)
 	bow_load[player:get_player_name()] = nil
 	bow_index[player:get_player_name()] = nil
 	bow_load_level[player:get_player_name()] = nil
-	if minetest.get_modpath("playerphysics") then
+	if core.get_modpath("playerphysics") then
 		playerphysics.remove_physics_factor(player, "speed", "longbow:use_bow")
 	end
 	if also_reset_bows then
@@ -254,7 +254,7 @@ local function reset_bow_state(player, also_reset_bows)
 end
 
 for level=0, 2 do
-	minetest.register_tool("longbow:bow_"..level, {
+	core.register_tool("longbow:bow_"..level, {
 		description = S("Longbow"),
 		_doc_items_create_entry = false,
 		inventory_image = "longbow.png^vl_unknown.png",
@@ -271,7 +271,7 @@ for level=0, 2 do
 			else
 				itemstack:set_name("longbow:longbow")
 			end
-			minetest.item_drop(itemstack, dropper, pos)
+			core.item_drop(itemstack, dropper, pos)
 			itemstack:take_item()
 			return itemstack
 		end,
@@ -300,10 +300,10 @@ controls.register_on_release(function(player, key, time)
 		local p_load = bow_load[player:get_player_name()]
 		local charge
 		if type(p_load) == "number" then
-			charge = minetest.get_us_time() - p_load
+			charge = core.get_us_time() - p_load
 		else
 			charge = 0
-			minetest.log("warning", "[mcl_bows] Player "..player:get_player_name().." fires arrow with non-numeric bow_load!")
+			core.log("warning", "[mcl_bows] Player "..player:get_player_name().." fires arrow with non-numeric bow_load!")
 		end
 		charge = math.max(math.min(charge, BOW_CHARGE_TIME_FULL), 0)
 
@@ -327,7 +327,7 @@ controls.register_on_release(function(player, key, time)
 
 		local has_shot = player_shoot_arrow(wielditem, player, speed, damage, is_critical)
 
-		if has_shot and not minetest.is_creative_enabled(player:get_player_name()) then
+		if has_shot and not core.is_creative_enabled(player:get_player_name()) then
 			local durability = BOW_DURABILITY
 			local unbreaking = mcl_enchanting.get_enchantment(wielditem, "unbreaking")
 			if unbreaking > 0 then
@@ -343,7 +343,7 @@ end)
 
 controls.register_on_hold(function(player, key, time)
 	local name = player:get_player_name()
-	local creative = minetest.is_creative_enabled(name)
+	local creative = core.is_creative_enabled(name)
 	if (key ~= "RMB" and key ~= "zoom") or not (creative or get_arrow(player)) then
 		return
 	end
@@ -357,10 +357,10 @@ controls.register_on_hold(function(player, key, time)
 			if enchanted then im_string = im_string .. mcl_enchanting.overlay end
 			meta:set_string("inventory_image", im_string)
 			player:set_wielded_item(wielditem)
-			if minetest.get_modpath("playerphysics") then
+			if core.get_modpath("playerphysics") then
 				playerphysics.add_physics_factor(player, "speed", "longbow:use_bow", PLAYER_USE_BOW_SPEED)
 			end
-			bow_load[name] = minetest.get_us_time()
+			bow_load[name] = core.get_us_time()
 			bow_load_level[name] = 0
 			bow_index[name] = player:get_wield_index()
 
@@ -369,11 +369,11 @@ controls.register_on_hold(function(player, key, time)
 		if player:get_wield_index() == bow_index[name] then
 			if type(bow_load[name]) == "number" then
 				local level = 0
-				if minetest.get_us_time() - bow_load[name] >= BOW_CHARGE_TIME_FULL then
+				if core.get_us_time() - bow_load[name] >= BOW_CHARGE_TIME_FULL then
 					if bow_load_level[name] == 2 then return end
 					level = 2
 					bow_load_level[name] = 2
-				elseif minetest.get_us_time() - bow_load[name] >= BOW_CHARGE_TIME_HALF then
+				elseif core.get_us_time() - bow_load[name] >= BOW_CHARGE_TIME_HALF then
 					if bow_load_level[name] == 1 then return end
 					level = 1
 					bow_load_level[name] = 1
@@ -394,8 +394,8 @@ controls.register_on_hold(function(player, key, time)
 	end
 end)
 
-minetest.register_globalstep(function(dtime)
-	for _, player in pairs(minetest.get_connected_players()) do
+core.register_globalstep(function(dtime)
+	for _, player in pairs(core.get_connected_players()) do
 		local name = player:get_player_name()
 		local wielditem = player:get_wielded_item()
 		local wieldindex = player:get_wield_index()
@@ -407,16 +407,16 @@ minetest.register_globalstep(function(dtime)
 	end
 end)
 
-minetest.register_on_joinplayer(function(player)
+core.register_on_joinplayer(function(player)
 	reset_bows(player)
 end)
 
-minetest.register_on_leaveplayer(function(player)
+core.register_on_leaveplayer(function(player)
 	reset_bow_state(player, true)
 end)
 
-if minetest.get_modpath("mcl_core") and minetest.get_modpath("mcl_mobitems") then
-	minetest.register_craft({
+if core.get_modpath("mcl_core") and core.get_modpath("mcl_mobitems") then
+	core.register_craft({
 		output = "longbow:longbow",
 		recipe = {
 			{"", "mcl_core:stick", "mcl_mobitems:string"},
@@ -424,7 +424,7 @@ if minetest.get_modpath("mcl_core") and minetest.get_modpath("mcl_mobitems") the
 			{"", "mcl_core:stick", "mcl_mobitems:string"},
 		}
 	})
-	minetest.register_craft({
+	core.register_craft({
 		output = "longbow:longbow",
 		recipe = {
 			{"mcl_mobitems:string", "mcl_core:stick", ""},
@@ -434,8 +434,26 @@ if minetest.get_modpath("mcl_core") and minetest.get_modpath("mcl_mobitems") the
 	})
 end
 
-minetest.register_craft({
+core.register_craft({
 	type = "fuel",
 	recipe = "longbow:longbow",
 	burntime = 15,
+})
+
+core.register_craft({
+    output = "longbow:longbow",
+    recipe = {
+        {"", "group:wood", "mcl_mobitems:string"},
+        {"group:wood", "", "mcl_mobitems:string"},
+        {"", "group:wood", "mcl_mobitems:string"},
+    }
+})
+
+core.register_craft({
+    output = "longbow:longbow",
+    recipe = {
+        {"mcl_mobitems:string", "group:wood", ""},
+        {"mcl_mobitems:string", "", "group:wood"},
+        {"mcl_mobitems:string", "group:wood", ""},
+    }
 })
